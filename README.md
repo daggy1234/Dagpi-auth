@@ -1,1 +1,3 @@
-auth-api
+# auth-api
+
+## Blazingly Fast Authorization For Dagpi
