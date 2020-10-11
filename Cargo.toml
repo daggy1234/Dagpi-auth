@@ -1,0 +1,18 @@
+[package]
+name = "auth_api"
+version = "0.1.0"
+authors = ["Daggy1234 <arnav.jindal7@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx = { version = "0.4.0-beta.1", default-features = false, features = ["runtime-actix", "postgres"] }
+actix-web="*"
+actix-rt = "*"
+serde = "1.0"
+log = "*"
+env_logger = "0.7.1"
+dotenv="*"
+futures="*"
+actix-service="*"
