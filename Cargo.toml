@@ -1,3 +1,4 @@
+# syntax = denzp/cargo-wharf-frontend:v0.1.0-alpha.2
 [package]
 name = "auth_api"
 version = "0.1.0"
@@ -16,3 +17,20 @@ env_logger = "0.7.1"
 dotenv="0.15.0"
 futures="0.3.8"
 actix-service="1.0.6"
+
+[package.metadata.wharf.builder]
+image = "rust"
+
+[package.metadata.wharf.output]
+image = "gcr.io/distroless/cc-debian10"
+entrypoint = ["auth_api"]
+stop-signal = "SIGINT"
+
+[package.metadata.wharf.output.labels]
+"simple-label" = "simple value"
+"my.awesome.label" = "another value"
+
+[[package.metadata.wharf.binary]]
+name = "auth_api"
+destination = "/usr/local/bin/auth_api"
+
