@@ -50,7 +50,7 @@ async fn add_key(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let deets = token.into_inner();
-    let res = sqlx::query(r#"INSERT INTO TOKENS VALUES ($1,$2,1,1,'f')"#)
+    let res = sqlx::query(r#"INSERT INTO TOKENS VALUES ($1,$2,1,1,60,'f')"#)
         .bind(deets.1)
         .bind(deets.0)
         .execute(&**pool)
@@ -64,6 +64,36 @@ async fn add_key(
         Err(_error) => {
             return HttpResponse::InternalServerError().json(Resp {
                 message: "UNABLE TO ADD TOKEN",
+            })
+        }
+    }
+}
+
+#[get("/resetlimits/{token}/{limit}")]
+async fn update_limit(
+    token: web::Path<(String, i16)>,
+    pool: web::Data<sqlx::postgres::PgPool>,
+) -> impl Responder {
+    let deets = token.into_inner();
+    let res = sqlx::query(
+        r#"                                                                       
+    UPDATE tokens                                                                 
+    SET "ratelimit"=$1                                                              
+    WHERE "apikey"=$2;"#,
+    )
+    .bind(deets.1)
+    .bind(deets.0)
+    .execute(&**pool)
+    .await;
+    match res {
+        Ok(_val) => {
+            return HttpResponse::Ok().json(Resp {
+                message: "NEW RATELIMITS SET",
+            })
+        }
+        Err(_error) => {
+            return HttpResponse::InternalServerError().json(Resp {
+                message: "UNABLE TO UPATE LIMITS",
             })
         }
     }
@@ -129,24 +159,23 @@ async fn get_data(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let apikey = key.into_inner();
-    let mres: Option<(i32,)> = sqlx::query_as(
+    let mres: Option<(bool,)> = sqlx::query_as(
         r#"
 UPDATE tokens
 SET "uses" = "uses" + 1,"totaluses" = "totaluses" + 1
-WHERE "apikey"=$1 
-RETURNING uses;
+WHERE "apikey"=$1
+RETURNING uses > "ratelimit";
     "#,
     )
     .bind(&apikey)
     .fetch_optional(&**pool)
     .await
     .unwrap();
-    let limit: i32 = 60;
     match mres {
         Some(val) => {
             return HttpResponse::Ok().json(AuthResp {
                 auth: true,
-                ratelimited: val.0 > limit,
+                ratelimited: val.0,
             })
         }
         None => {
@@ -165,4 +194,5 @@ pub fn init_routes(config: &mut web::ServiceConfig) {
     config.service(add_key);
     config.service(delete_key);
     config.service(reset_key);
+    config.service(update_limit);
 }

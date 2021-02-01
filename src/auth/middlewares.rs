@@ -1,5 +1,5 @@
 use actix_service::{Service, Transform};
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, web::Data, Error, HttpResponse};
+use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpResponse};
 use futures::future::{ok, Ready};
 use futures::Future;
 use serde::Serialize;
