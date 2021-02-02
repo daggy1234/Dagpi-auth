@@ -13,7 +13,7 @@ struct AuthResp {
     ratelimited: bool,
     premium: bool,
     ratelimit: i32,
-    left: i32
+    left: i32,
 }
 
 #[get("/reset")]
@@ -53,7 +53,7 @@ async fn add_key(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let deets = token.into_inner();
-    let res = sqlx::query(r#"INSERT INTO TOKENS VALUES ($1,$2,1,1,60,'f')"#)
+    let res = sqlx::query(r#"INSERT INTO TOKENS (userid, apikey, uses, totaluses, ratelimit, enhanced) VALUES ($1,$2,1,1,60,'f')"#)
         .bind(deets.1)
         .bind(deets.0)
         .execute(&**pool)
@@ -72,7 +72,7 @@ async fn add_key(
     }
 }
 
-#[get("/resetlimits/{token}/{limit}")]
+#[get("/changelimits/{token}/{limit}")]
 async fn update_limit(
     token: web::Path<(String, i16)>,
     pool: web::Data<sqlx::postgres::PgPool>,
@@ -162,7 +162,7 @@ async fn get_data(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let apikey = key.into_inner();
-    let mres: Option<(i32, i32,)> = sqlx::query_as(
+    let mres: Option<(i32, i32)> = sqlx::query_as(
         r#"
 UPDATE tokens
 SET "uses" = "uses" + 1,"totaluses" = "totaluses" + 1
@@ -181,7 +181,7 @@ RETURNING uses, "ratelimit";
                 ratelimited: val.0 >= val.1,
                 premium: val.1 > 60 as i32,
                 ratelimit: val.1,
-                left: val.1 - val.0
+                left: val.1 - val.0,
             })
         }
         None => {
@@ -190,7 +190,7 @@ RETURNING uses, "ratelimit";
                 ratelimited: false,
                 premium: false,
                 ratelimit: 0,
-                left: 0
+                left: 0,
             })
         }
     };
