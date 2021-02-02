@@ -19,7 +19,7 @@ futures="0.3.8"
 actix-service="1.0.6"
 
 [package.metadata.wharf.builder]
-image = "rust"
+image = "rust:1.48.0"
 
 [package.metadata.wharf.output]
 image = "gcr.io/distroless/cc-debian10"

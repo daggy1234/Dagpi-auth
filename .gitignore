@@ -1,2 +1,7 @@
 target/
 *.env
+*.csv
+docker-compose.yml
+dump.sql
+postgres-data/
+.vscode/

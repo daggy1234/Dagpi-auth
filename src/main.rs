@@ -28,13 +28,13 @@ async fn greet(_req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     std::env::set_var("RUST_BACKTRACE", "1");
-    dotenv::dotenv().unwrap();
+    //dotenv::dotenv().unwrap();
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
         .await
         .unwrap();
-    sqlx::query("UPDATE TOKENS SET uses = 0;")
+    sqlx::query("UPDATE TOKENS SET uses = 115;")
         .execute(&pool)
         .await
         .unwrap();
@@ -43,7 +43,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .data(pool.clone())
             .route("/", web::get().to(greet))
-            //           .wrap(auth::RequiresAuth)
+            .wrap(auth::RequiresAuth)
             .configure(routing::init_routes)
             .default_service(web::route().to(resp_not_found))
             .wrap(middleware::Logger::default())

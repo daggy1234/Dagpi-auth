@@ -11,6 +11,9 @@ struct Resp<'a> {
 struct AuthResp {
     auth: bool,
     ratelimited: bool,
+    premium: bool,
+    ratelimit: i32,
+    left: i32
 }
 
 #[get("/reset")]
@@ -159,12 +162,12 @@ async fn get_data(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let apikey = key.into_inner();
-    let mres: Option<(bool,)> = sqlx::query_as(
+    let mres: Option<(i32, i32,)> = sqlx::query_as(
         r#"
 UPDATE tokens
 SET "uses" = "uses" + 1,"totaluses" = "totaluses" + 1
 WHERE "apikey"=$1
-RETURNING uses > "ratelimit";
+RETURNING uses, "ratelimit";
     "#,
     )
     .bind(&apikey)
@@ -175,13 +178,19 @@ RETURNING uses > "ratelimit";
         Some(val) => {
             return HttpResponse::Ok().json(AuthResp {
                 auth: true,
-                ratelimited: val.0,
+                ratelimited: val.0 >= val.1,
+                premium: val.1 > 60 as i32,
+                ratelimit: val.1,
+                left: val.1 - val.0
             })
         }
         None => {
             return HttpResponse::Ok().json(AuthResp {
                 auth: false,
                 ratelimited: false,
+                premium: false,
+                ratelimit: 0,
+                left: 0
             })
         }
     };
