@@ -648,6 +648,9 @@ name = "either"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd56b59865bce947ac5958779cfa508f6c3b9497cc762b7e24a12d11ccde2c4f"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "encoding_rs"
@@ -1076,11 +1079,11 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.11"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
+checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -1545,6 +1548,7 @@ version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 dependencies = [
+ "indexmap",
  "itoa",
  "ryu",
  "serde",
@@ -1687,6 +1691,7 @@ dependencies = [
  "percent-encoding",
  "rand",
  "rustls",
+ "serde",
  "sha-1",
  "sha2",
  "smallvec",
@@ -1694,6 +1699,7 @@ dependencies = [
  "sqlx-rt",
  "stringprep",
  "thiserror",
+ "time",
  "url",
  "webpki",
  "webpki-roots",
@@ -1710,8 +1716,12 @@ dependencies = [
  "either",
  "futures",
  "heck",
+ "hex",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
+ "sha2",
  "sqlx-core",
  "sqlx-rt",
  "syn",

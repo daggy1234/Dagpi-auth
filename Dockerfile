@@ -1,5 +1,7 @@
 FROM rust:1.48.0 as build
+
 ENV PKG_CONFIG_ALLOW_CROSS=1
+ENV SQLX_OFFLINE=1
 
 WORKDIR /usr/src/auth_api
 COPY . .
