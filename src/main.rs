@@ -45,7 +45,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     let st = StatPool { pool: sp };
 
-    sqlx::query("UPDATE TOKENS SET uses = 115;")
+    sqlx::query("UPDATE TOKENS SET uses = 0;")
         .execute(&pool)
         .await
         .unwrap();
