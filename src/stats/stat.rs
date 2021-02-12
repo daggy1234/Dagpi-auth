@@ -2,6 +2,78 @@ use crate::stats::model::*;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx;
 
+#[get("/stats/week/{apikey}")]
+async fn get_stat_week(key: web::Path<String>, pool: web::Data<StatPool>) -> impl Responder {
+    let k = key.into_inner();
+    let p = &pool.into_inner().pool;
+    let qr = sqlx::query!(
+        "
+        SELECT route, agent, api, time FROM stats
+        WHERE apikey = $1 AND time > NOW() - INTERVAL '1 week';
+    ",
+        k
+    )
+    .fetch_all(p)
+    .await;
+    let q = match qr {
+        Ok(v) => v,
+        Err(_r) => return HttpResponse::InternalServerError().json(Resp { message: "error" }),
+    };
+
+    let out: Vec<Stat> = q
+        .into_iter()
+        .map(|i| -> Stat {
+            Stat {
+                route: String::from(i.route),
+                user_agent: String::from(i.agent),
+                api: String::from(i.api),
+                timestamp: i.time.unix_timestamp(),
+            }
+        })
+        .collect();
+    let c = StatResp {
+        total: out.len(),
+        data: out,
+    };
+    return HttpResponse::Ok().json(c);
+}
+
+#[get("/stats/month/{apikey}")]
+async fn get_stat_month(key: web::Path<String>, pool: web::Data<StatPool>) -> impl Responder {
+    let k = key.into_inner();
+    let p = &pool.into_inner().pool;
+    let qr = sqlx::query!(
+        "
+        SELECT route, agent, api, time FROM stats
+        WHERE apikey = $1 AND time > NOW() - INTERVAL '1 month';
+    ",
+        k
+    )
+    .fetch_all(p)
+    .await;
+    let q = match qr {
+        Ok(v) => v,
+        Err(_r) => return HttpResponse::InternalServerError().json(Resp { message: "error" }),
+    };
+
+    let out: Vec<Stat> = q
+        .into_iter()
+        .map(|i| -> Stat {
+            Stat {
+                route: String::from(i.route),
+                user_agent: String::from(i.agent),
+                api: String::from(i.api),
+                timestamp: i.time.unix_timestamp(),
+            }
+        })
+        .collect();
+    let c = StatResp {
+        total: out.len(),
+        data: out,
+    };
+    return HttpResponse::Ok().json(c);
+}
+
 #[get("/stats/{apikey}")]
 async fn get_stat(key: web::Path<String>, pool: web::Data<StatPool>) -> impl Responder {
     let k = key.into_inner();
@@ -66,4 +138,6 @@ async fn post_stat(form: web::Json<StatForm>, pool: web::Data<StatPool>) -> impl
 pub fn init_routes(config: &mut web::ServiceConfig) {
     config.service(get_stat);
     config.service(post_stat);
+    config.service(get_stat_week);
+    config.service(get_stat_month);
 }

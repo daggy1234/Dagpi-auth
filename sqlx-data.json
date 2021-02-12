@@ -1,5 +1,43 @@
 {
   "db": "PostgreSQL",
+  "17174fefd5af3ba853a9b4534ddf35325be94fba071f9dd9ae17886fc9b5c4af": {
+    "query": "\n        SELECT route, agent, api, time FROM stats\n        WHERE apikey = $1 AND time > NOW() - INTERVAL '1 week';\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "route",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "agent",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "api",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "time",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bpchar"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "2fa442e670b949a3f7490c9536e10c5dd76903f99562b6ab1da0c06ba33fbea9": {
     "query": "\n        INSERT INTO stats(time, apikey, route, agent, api)\n        VALUES (NOW(),$1,$2,$3,$4);\n    ",
     "describe": {
@@ -13,6 +51,44 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "b48002e19dde840ff131b41dfe517fd70f8d441e423a5566a814868200e5f8a6": {
+    "query": "\n        SELECT route, agent, api, time FROM stats\n        WHERE apikey = $1 AND time > NOW() - INTERVAL '1 month';\n    ",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "route",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 1,
+          "name": "agent",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "api",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 3,
+          "name": "time",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bpchar"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
     }
   },
   "cf68f6b5e0510c469cead01a979bee60389911950cc4aa69c5134554348858d4": {

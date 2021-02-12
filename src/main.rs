@@ -31,7 +31,7 @@ async fn greet(_req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     std::env::set_var("RUST_BACKTRACE", "1");
-    //dotenv::dotenv().unwrap();
+    //dotenv::dotenv().ok();
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&std::env::var("DATABASE_URL_MAIN").expect("DATABASE_URL_MAIN not set"))
