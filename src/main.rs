@@ -1,9 +1,8 @@
 use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
 use env_logger;
-use std::sync::Arc;
+use std::sync::{atomic, Arc};
 use std::time::Duration;
-use tokio::sync::Mutex;
 mod routing;
 use dotenv;
 use tokio::time;
@@ -20,10 +19,6 @@ struct ErrorResp<'a> {
     message: &'a str,
 }
 
-pub struct RetryAfter {
-    timestamp: u64,
-}
-
 pub async fn resp_not_found() -> HttpResponse {
     HttpResponse::NotFound().json(ErrorResp {
         message: "Page not found",
@@ -31,7 +26,6 @@ pub async fn resp_not_found() -> HttpResponse {
 }
 
 async fn greet(_req: HttpRequest) -> impl Responder {
-    println!("HELLO");
     HttpResponse::Ok().json(ErrorResp {
         message: "HELLO WORLD",
     })
@@ -43,7 +37,7 @@ async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_BACKTRACE", "1");
     // dotenv::dotenv().ok();
 
-    let tstr = Arc::new(Mutex::new(RetryAfter { timestamp: 0_u64 }));
+    let tstr = Arc::new(atomic::AtomicU64::new(0_u64));
 
     let pool_tstr = Arc::clone(&tstr);
 
@@ -88,20 +82,15 @@ async fn main() -> std::io::Result<()> {
         let mut interval = time::interval(Duration::from_millis(60000));
         loop {
             interval.tick().await;
-            let res = sqlx::query("UPDATE TOKENS SET uses = 0;")
+            sqlx::query("UPDATE TOKENS SET uses = 0;")
                 .execute(&new_st)
-                .await;
-            let mut l = pool_tstr.lock().await;
+                .await
+                .unwrap();
             let start = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Wtf how is this time backward")
                 .as_secs();
-            l.timestamp = start + 60;
-            println!("All done!");
-            match res {
-                Ok(_) => println!("Reset Worked"),
-                Err(e) => println!("Error: {}", e),
-            }
+            pool_tstr.store(start + 60, atomic::Ordering::Relaxed);
         }
     });
 

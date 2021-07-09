@@ -1,9 +1,7 @@
-use crate::RetryAfter;
 use actix_web::{get, web, HttpResponse, Responder};
 use serde::Serialize;
 use sqlx;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{atomic::AtomicU64, Arc};
 
 #[derive(Serialize)]
 struct Resp<'a> {
@@ -145,7 +143,7 @@ async fn delete_key(
 async fn get_data(
     key: web::Path<String>,
     pool: web::Data<sqlx::postgres::PgPool>,
-    dat: web::Data<Arc<Mutex<RetryAfter>>>,
+    dat: web::Data<Arc<AtomicU64>>,
 ) -> impl Responder {
     let apikey = key.into_inner();
     let mres: Option<(i32, i32)> = sqlx::query_as(
@@ -160,10 +158,7 @@ RETURNING uses, "ratelimit";
     .fetch_optional(&**pool)
     .await
     .unwrap();
-    let after_val_r = dat.lock().await;
-    let after_val = &after_val_r.timestamp;
-    // let after_val = rx.lo.await.unwrap_or_else(|| "None".to_string());
-    println!("After: {}", after_val);
+    let after_val = dat.load(std::sync::atomic::Ordering::Relaxed);
     match mres {
         Some(val) => {
             return HttpResponse::Ok().json(AuthResp {
@@ -172,7 +167,7 @@ RETURNING uses, "ratelimit";
                 premium: val.1 > 60 as i32,
                 ratelimit: val.1,
                 left: val.1 - val.0,
-                after: *after_val,
+                after: after_val,
             })
         }
         None => {
@@ -182,7 +177,7 @@ RETURNING uses, "ratelimit";
                 premium: false,
                 ratelimit: 0,
                 left: 0,
-                after: *after_val,
+                after: after_val,
             })
         }
     };
