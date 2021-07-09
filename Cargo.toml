@@ -12,6 +12,7 @@ sqlx = { version = "0.4.1", default-features = false, features = ["runtime-actix
 actix-web="3.3.0"
 actix-rt = "1.1.1"
 serde = "1.0"
+chrono = "0.4.19"
 log = "0.4.14"
 env_logger = "0.7.1"
 dotenv="0.15.0"

@@ -1,12 +1,14 @@
 use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 
 use env_logger;
+use std::convert::TryInto;
 use std::sync::{atomic, Arc};
 use std::time::Duration;
 mod routing;
 use dotenv;
 use tokio::time;
 mod stats;
+use chrono::offset::Utc;
 use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -35,7 +37,7 @@ async fn greet(_req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     std::env::set_var("RUST_BACKTRACE", "1");
-    // dotenv::dotenv().ok();
+    dotenv::dotenv().ok();
 
     let tstr = Arc::new(atomic::AtomicU64::new(0_u64));
 
@@ -86,11 +88,9 @@ async fn main() -> std::io::Result<()> {
                 .execute(&new_st)
                 .await
                 .unwrap();
-            let start = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Wtf how is this time backward")
-                .as_secs();
-            pool_tstr.store(start + 60, atomic::Ordering::Relaxed);
+            let start_utc = Utc::now().timestamp();
+            let start: u64 = (start_utc + 60).try_into().unwrap();
+            pool_tstr.store(start, atomic::Ordering::Relaxed);
         }
     });
 
