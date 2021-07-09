@@ -1,6 +1,9 @@
+use crate::RetryAfter;
 use actix_web::{get, web, HttpResponse, Responder};
 use serde::Serialize;
 use sqlx;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Serialize)]
 struct Resp<'a> {
@@ -14,25 +17,7 @@ struct AuthResp {
     premium: bool,
     ratelimit: i32,
     left: i32,
-}
-
-#[get("/reset")]
-async fn reset(pool: web::Data<sqlx::postgres::PgPool>) -> impl Responder {
-    let res = sqlx::query("UPDATE TOKENS SET uses = 0;")
-        .execute(&**pool)
-        .await;
-    match res {
-        Ok(_val) => {
-            return HttpResponse::Ok().json(Resp {
-                message: "RESET COOLDOWNS",
-            })
-        }
-        Err(_error) => {
-            return HttpResponse::InternalServerError().json(Resp {
-                message: "UNABLE TO RESET COOLDOWNS",
-            })
-        }
-    }
+    after: u64,
 }
 
 #[get("/dbdata")]
@@ -160,6 +145,7 @@ async fn delete_key(
 async fn get_data(
     key: web::Path<String>,
     pool: web::Data<sqlx::postgres::PgPool>,
+    dat: web::Data<Arc<Mutex<RetryAfter>>>,
 ) -> impl Responder {
     let apikey = key.into_inner();
     let mres: Option<(i32, i32)> = sqlx::query_as(
@@ -174,6 +160,10 @@ RETURNING uses, "ratelimit";
     .fetch_optional(&**pool)
     .await
     .unwrap();
+    let after_val_r = dat.lock().await;
+    let after_val = &after_val_r.timestamp;
+    // let after_val = rx.lo.await.unwrap_or_else(|| "None".to_string());
+    println!("After: {}", after_val);
     match mres {
         Some(val) => {
             return HttpResponse::Ok().json(AuthResp {
@@ -182,6 +172,7 @@ RETURNING uses, "ratelimit";
                 premium: val.1 > 60 as i32,
                 ratelimit: val.1,
                 left: val.1 - val.0,
+                after: *after_val,
             })
         }
         None => {
@@ -191,6 +182,7 @@ RETURNING uses, "ratelimit";
                 premium: false,
                 ratelimit: 0,
                 left: 0,
+                after: *after_val,
             })
         }
     };
@@ -199,7 +191,6 @@ RETURNING uses, "ratelimit";
 pub fn init_routes(config: &mut web::ServiceConfig) {
     config.service(get_key);
     config.service(get_data);
-    config.service(reset);
     config.service(add_key);
     config.service(delete_key);
     config.service(reset_key);

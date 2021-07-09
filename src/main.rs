@@ -1,10 +1,16 @@
 use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+
 use env_logger;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
 mod routing;
 use dotenv;
+use tokio::time;
 mod stats;
 use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
+use std::time::{SystemTime, UNIX_EPOCH};
 mod auth;
 
 use stats::StatPool;
@@ -12,6 +18,10 @@ use stats::StatPool;
 #[derive(Serialize)]
 struct ErrorResp<'a> {
     message: &'a str,
+}
+
+pub struct RetryAfter {
+    timestamp: u64,
 }
 
 pub async fn resp_not_found() -> HttpResponse {
@@ -31,20 +41,24 @@ async fn greet(_req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
     std::env::set_var("RUST_BACKTRACE", "1");
-    //dotenv::dotenv().ok();
+    // dotenv::dotenv().ok();
+
+    let tstr = Arc::new(Mutex::new(RetryAfter { timestamp: 0_u64 }));
+
+    let pool_tstr = Arc::clone(&tstr);
+
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&std::env::var("DATABASE_URL_MAIN").expect("DATABASE_URL_MAIN not set"))
         .await
         .unwrap();
-
     let sp = PgPoolOptions::new()
         .max_connections(10)
         .connect(&std::env::var("DATABASE_URL").expect("DATABASE_URL not set"))
         .await
         .unwrap();
     let st = StatPool { pool: sp };
-
+    let new_st = pool.clone();
     sqlx::query("UPDATE TOKENS SET uses = 0;")
         .execute(&pool)
         .await
@@ -55,10 +69,11 @@ async fn main() -> std::io::Result<()> {
         .await
         .unwrap();
     env_logger::init();
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .data(pool.clone())
             .data(st.clone())
+            .data(tstr.clone())
             .route("/", web::get().to(greet))
             .wrap(auth::RequiresAuth)
             .configure(routing::init_routes)
@@ -67,6 +82,28 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
     })
     .bind("0.0.0.0:8000")?
-    .run()
-    .await
+    .run();
+
+    actix_web::rt::spawn(async move {
+        let mut interval = time::interval(Duration::from_millis(60000));
+        loop {
+            interval.tick().await;
+            let res = sqlx::query("UPDATE TOKENS SET uses = 0;")
+                .execute(&new_st)
+                .await;
+            let mut l = pool_tstr.lock().await;
+            let start = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Wtf how is this time backward")
+                .as_secs();
+            l.timestamp = start + 60;
+            println!("All done!");
+            match res {
+                Ok(_) => println!("Reset Worked"),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+    });
+
+    server.await
 }
