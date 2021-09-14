@@ -36,7 +36,7 @@ async fn add_key(
     pool: web::Data<sqlx::postgres::PgPool>,
 ) -> impl Responder {
     let deets = token.into_inner();
-    let res = sqlx::query(r#"INSERT INTO TOKENS (userid, apikey, uses, totaluses, ratelimit, enhanced) VALUES ($1,$2,1,1,60,'f')"#)
+    let res = sqlx::query(r#"INSERT INTO TOKENS (userid, apikey, uses, totaluses, ratelimit, enhanced) VALUES ($1,$2,1,1,45,'f')"#)
         .bind(deets.1)
         .bind(deets.0)
         .execute(&**pool)
@@ -164,7 +164,7 @@ RETURNING uses, "ratelimit";
             return HttpResponse::Ok().json(AuthResp {
                 auth: true,
                 ratelimited: val.0 >= val.1,
-                premium: val.1 > 60 as i32,
+                premium: val.1 > 45 as i32,
                 ratelimit: val.1,
                 left: val.1 - val.0,
                 after: after_val,
